@@ -820,7 +820,7 @@ class dps_GUI(QMainWindow):
 		if sys.platform.startswith('darwin'):
 			return glob.glob('/dev/tty.*')
 		return []
-		
+
 	def serial_connect(self, connection_settings = None, progress_callback = None): # port autoconnects, baud rate & slave address manual inputs
 		settings = connection_settings or self.connection_settings
 		try:
@@ -828,39 +828,33 @@ class dps_GUI(QMainWindow):
 			slave_addr = abs(int(settings.get('slave_addr', '1')))
 			selected_port = settings.get('port', '')
 			fixed_port = self.limits.port_set or selected_port
+			
+			candidate_ports = self.scan_serial_ports()
 			if not fixed_port: 			# modified by christophjurczyk for automatic port scanning or set serial port
 				# Automatic port scan
 				print("Looking for ports...")
-				for port in self.scan_serial_ports():
+			else:
+				# Manual port definition in .ini file
+				print(f"Manual port is set: '{selected_port}'")
+				candidate_ports = list([selected_port])
+			for port in candidate_ports:
+				if not fixed_port:
 					print("Trying port: " + port)
-					try:
-						ser = Serial_modbus(port, slave_addr, baudrate, 8)
-						candidate_dps = Dps5005(ser, self.limits) #example '/dev/ttyUSB0', 1, 9600, 8)
+				try:
+					ser = Serial_modbus(port, slave_addr, baudrate, 8, self.limits.silent_interval)
+					candidate_dps = Dps5005(ser, self.limits) #example '/dev/ttyUSB0', 1, 9600, 8)
+					for i in range(2): #try again
+						if i>0:
+							print(f" Trying again ({i})...")
 						version = candidate_dps.version()
 						if version not in (False, None, ''):
+							candidate_dps.check_model()
 							return {
 								'connected': True,
 								'dps': candidate_dps,
 								'connection_settings': {'port': port, 'baudrate': str(baudrate), 'slave_addr': str(slave_addr)},
 								'status': "Connected",
 							}
-					except (OSError, serial.SerialException) as detail1:
-						print(datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S"), "Error1 - ", detail1)
-						pass
-			else:
-				# Manual port definition in .ini file
-				print("Manual port is set!")
-				try:
-					ser = Serial_modbus(fixed_port, slave_addr, baudrate, 8)
-					candidate_dps = Dps5005(ser, self.limits) #example '/dev/ttyUSB0', 1, 9600, 8)
-					version = candidate_dps.version()
-					if version not in (False, None, ''):
-						return {
-							'connected': True,
-							'dps': candidate_dps,
-							'connection_settings': {'port': fixed_port, 'baudrate': str(baudrate), 'slave_addr': str(slave_addr)},
-							'status': "Connected",
-						}
 				except (OSError, serial.SerialException) as detail1:
 					print(datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S"), "Error1 - ", detail1)
 					pass

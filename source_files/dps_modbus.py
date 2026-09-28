@@ -16,20 +16,17 @@ class Import_limits:
 	def __init__(self, filename):
 		Config = ConfigParser.ConfigParser()
 		Config.read(filename)
-		b = Config.options('SectionOne')		# safety limits
-		for x in range(len(b)):
-			c = b[x]
-			exec("self.%s = %s" % (c, Config.get('SectionOne', c)))	
-		
-		b = Config.options('SectionTwo')		# decimal places
-		for x in range(len(b)):
-			c = b[x]
-			exec("self.%s = %s" % (c, Config.get('SectionTwo', c)))
-		
-		b = Config.options('SectionThree')		# plot colours
-		for x in range(len(b)):
-			c = b[x]
-			exec("self.%s = %s" % (c, Config.get('SectionThree', c)))			
+		sections = [
+			"SectionOne", 	# safety limits
+		 	"SectionTwo", 	# decimal places
+		 	"SectionThree", # plot colours	
+		 	"Communication" # device specific communication specs
+		 ]
+		for section in sections:
+			options = Config.options(section)		
+			for i in range(len(options)):
+				key = options[i]
+				exec("self.%s = %s" % (key, Config.get(section, key)))		
 
 '''
 # original inspiration for this came from here:
@@ -38,24 +35,29 @@ class Import_limits:
 # Requires minimalmodbus library from: https://github.com/pyhys/minimalmodbus
 '''		
 class Serial_modbus:
-	def __init__(self, port1, addr, baud_rate, byte_size ):
+	def __init__(self, port1, addr, baud_rate, byte_size, silent_interval = 0):
 		self.instrument = minimalmodbus.Instrument(port1, addr) # port name, slave address (in decimal)
 		#self.instrument.serial.port          # this is the serial port name
 		self.instrument.serial.baudrate = baud_rate   # Baud rate 9600 as listed in doc
 		self.instrument.serial.bytesize = byte_size
 		self.instrument.serial.timeout = 0.5     # This had to be increased from the default setting else it did not work !
 		self.instrument.mode = minimalmodbus.MODE_RTU  #RTU mode
+		self.silent_interval = silent_interval;
 
 	def read(self, reg_addr, decimal_places):
+		time.sleep(self.silent_interval)
 		return self.instrument.read_register(reg_addr, decimal_places)
 		
 	def read_block(self, reg_addr, size_of_block):
+		time.sleep(self.silent_interval)
 		return self.instrument.read_registers(reg_addr, size_of_block)
 
 	def write(self, reg_addr, value, decimal_places):
+		time.sleep(self.silent_interval)
 		self.instrument.write_register(reg_addr, value, decimal_places) # register, value, No_of_decimal_places
 	
 	def write_block(self, reg_addr, value):
+		time.sleep(self.silent_interval)
 		self.instrument.write_registers(reg_addr, value)
 				
 class Dps5005:
@@ -204,7 +206,19 @@ class Dps5005:
 				time_old = time.time()
 				break
 			time.sleep(0.01)
-			
+
+	def check_model(self):
+		model = self.model()
+		model_hex = hex(model)[2:]
+		expected_model_strings = [str(number) for number in self.limits.model_numbers]
+		match = model_hex in expected_model_strings
+		if match:
+			print(f"Model number {model_hex} matches with config file for Model {self.limits.model_name}.")
+		else:
+			print(f"Model number {model_hex} is not in the list of expected numbers {self.limits.model_numbers} for the configured model {self.limits.model_name}. Please verify that your configuration is correct.")
+		return match
+
+	
 	def action_csv_file(self, filename='sample.csv', value=0):
 		try:
 			with open(filename, 'r') as f:
@@ -239,8 +253,14 @@ class Dps5005:
 This file can operate independently controlling the DPS via the commandline however the GUI is much simpler.
 '''
 if __name__ == '__main__':
-	ser = Serial_modbus('/dev/ttyUSB0', 1, 115200, 8)
 	limits = Import_limits("dps5005_limits.ini")
+	try:
+		print("Serial port: "+limits.port_set)
+		ser = Serial_modbus(limits.port_set, 1, 115200, 8, limits.silent_interval)
+	except Exception as e:
+		print(f"Could not open the serial port '{limits.port_set}'.")
+		print(e.args)
+		quit()
 	dps = Dps5005(ser, limits)
 	try:
 		while True:
@@ -286,7 +306,7 @@ if __name__ == '__main__':
 				value = input("Enter value: ")
 				dps.voltage_set('w', float(value))
 			elif route == "iset":
-				value = nput("Enter value: ")
+				value = input("Enter value: ")
 				dps.current_set('w', float(value))
 			elif route == "lock":
 				value = input("Enter value: ")
