@@ -168,6 +168,8 @@ class dps_GUI(QMainWindow):
 		self.graph_X = []
 		self.graph_Y1 = []
 		self.graph_Y2 = []
+		self.graph_Y1_set = np.empty(shape=[0])
+		self.graph_Y2_set = np.empty(shape=[0])
 		self.time_old = ""
 		self.capacity_time_old = ""
 		self.capacity = 0.0
@@ -303,6 +305,7 @@ class dps_GUI(QMainWindow):
 		self.p1.setLabel('left', 'Voltage', units='V', color=self.limits.y1_colour, **{'font-size':'10pt'})
 		self.pen_Y1 = pg.mkPen(color=self.limits.y1_colour, width=self.limits.y1_pen_weight)
 		self.p1.getAxis('left').setPen(self.pen_Y1)
+		self.pen_Y1_set = pg.mkPen(color=self.limits.y1_set_colour, width=self.limits.y1_pen_weight*0.6)
 	
 	# setup viewbox for right hand axis
 		self.p2 = pg.ViewBox()
@@ -315,6 +318,7 @@ class dps_GUI(QMainWindow):
 		self.p1.setLabel('right', 'Current', units="A", color=self.limits.y2_colour, **{'font-size':'10pt'})
 		self.pen_Y2 = pg.mkPen(color=self.limits.y2_colour, width=self.limits.y2_pen_weight)
 		self.p1.getAxis('right').setPen(self.pen_Y2)
+		self.pen_Y2_set = pg.mkPen(color=self.limits.y2_set_colour, width=self.limits.y2_pen_weight*0.6)
 		
 	# scales ViewBox to scene
 		self.p1.vb.sigResized.connect(self.updateViews) 	
@@ -325,10 +329,15 @@ class dps_GUI(QMainWindow):
 		self.p2.linkedViewChanged(self.p1.vb, self.p2.XAxis)
 
 #--- update graph
-	def update_graph_plot(self, chart_type = 'histogram'):
-		start = time.time() 
-		if chart_type == 'histogram':		
-			X = np.asarray(self.graph_X, dtype=np.float32)
+	def update_graph_plot(self, chart_type = 'step'):
+		start = time.time()
+		X = np.asarray(self.graph_X, dtype=np.float32)
+		Y1 = np.asarray(self.graph_Y1, dtype=np.float32)
+		Y2 = np.asarray(self.graph_Y2, dtype=np.float32)
+		Y1_set = self.graph_Y1_set
+		Y2_set = self.graph_Y2_set
+
+		if chart_type == 'step':		
 			b = []
 			for a in X:
 				if len(b) == 0:
@@ -338,32 +347,27 @@ class dps_GUI(QMainWindow):
 					b.append(a)
 			c = len(b)
 			X = np.asarray(b, dtype=np.float32)
-			
-			Y1 = np.asarray(self.graph_Y1, dtype=np.float32)
-			b = []
-			for a in Y1:
-				b.append(a)
-				if len(b) != c:
+
+			def adapt_Y(Y):
+				b = []
+				for a in Y:
 					b.append(a)
-			Y1 = np.asarray(b, dtype=np.float32)
-			
-			Y2 = np.asarray(self.graph_Y2, dtype=np.float32)
-			b = []
-			for a in Y2:
-				b.append(a)
-				if len(b) != c:
-					b.append(a)
-			Y2 = np.asarray(b, dtype=np.float32)
-		else:
-			X = np.asarray(self.graph_X, dtype=np.float32)
-			Y1 = np.asarray(self.graph_Y1, dtype=np.float32)
-			Y2 = np.asarray(self.graph_Y2, dtype=np.float32)
+					if len(b) != c:
+						b.append(a)
+				return np.asarray(b, dtype=np.float32)
+			Y1 = adapt_Y(Y1)
+			Y2 = adapt_Y(Y2)
+			Y1_set = adapt_Y(Y1_set)
+			Y2_set = adapt_Y(Y2_set)
 
 		self.p1.clear()
 		self.p2.clear()
 		
 		self.p1.plot(X,Y1,pen=self.pen_Y1, name="V")
 		self.p2.addItem(pg.PlotCurveItem(X,Y2,pen=self.pen_Y2, name="I"))	
+
+		self.p1.addItem(pg.PlotCurveItem(X, Y1_set, pen=self.pen_Y1_set, name="V set"))
+		self.p2.addItem(pg.PlotCurveItem(X, Y2_set, pen=self.pen_Y2_set, name="I set"))
 
 		app.processEvents()
 		
@@ -407,6 +411,8 @@ class dps_GUI(QMainWindow):
 			else:
 				raise EnvironmentError('Unsupported platform')
 			
+			print("Note: Saving of the set voltage and set current is not implemented yet.")
+			
 			
 			
 		#	with open(filename, 'w', newline='') as f:					# added newline to prevent additional carriage return in windows (\r\r\n)
@@ -436,6 +442,8 @@ class dps_GUI(QMainWindow):
 		self.graph_X = []
 		self.graph_Y1 = []
 		self.graph_Y2 = []
+		self.graph_Y1_set = np.empty(shape=[0])
+		self.graph_Y2_set = np.empty(shape=[0])
 		self.time_old = time.time()
 		self.p1.clear()
 		self.p2.clear()
@@ -704,6 +712,9 @@ class dps_GUI(QMainWindow):
 			self.graph_X.append(self.time_interval)		# Xaxis  - time interval
 			self.graph_Y1.append(self.vout_str)				# Y1axis - voltage
 			self.graph_Y2.append(self.iout_str)				# Y2axis - current
+
+			self.graph_Y1_set = np.append(self.graph_Y1_set, data[0] * data[18])   # vset * on
+			self.graph_Y2_set = np.append(self.graph_Y2_set, data[1] * data[18]) # iset * on
 			
 			self.update_graph_plot()
 			

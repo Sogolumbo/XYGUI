@@ -155,7 +155,10 @@ class Dps5005:
 		data[13] = data[13] / float(10**self.limits.decimals_temp_internal)	# temperature internal
 		data[8] = data[8] / float(10**self.limits.decimals_energy)	# energy
 
-		data[23] = data[23] / float(10**self.limits.decimals_version)	#10.0	# version  # TODO this should not be a float there can be multiple points
+		data[23] = str(data[23])
+		for i in range(self.limits.decimals_version):
+			n = i*2+1
+			data[23] = data[23][:-n] + '.' + data[23][-n:]	# version
 		return data
 	
 	def write_voltage_current(self, RWaction='r', value=0):	# write voltage & current as a block
