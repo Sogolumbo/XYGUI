@@ -24,9 +24,9 @@ class Import_limits:
 			print(f"Config file '{filename}' not found. Potential fix: start the program directly from the containing folder.")
 			quit()
 		sections = [
-			"SectionOne", 	# safety limits
-			"SectionTwo", 	# decimal places
-			"SectionThree", # plot colours	
+			"SectionOne",
+			"SectionTwo",
+			"SectionThree",
 		]
 		for section in sections:
 			if section in Config.sections():
