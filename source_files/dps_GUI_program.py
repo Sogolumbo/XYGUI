@@ -285,7 +285,11 @@ class dps_GUI(QMainWindow):
 	
 	def closeEvent(self, event):    
 		self.shutdown() # switch OFF output when application closes to prevent unmonitored charging
-		
+		try:
+			dps.serial_data.close()
+			print("Serial port closed")
+		except Exception:
+			pass
 	def shutdown(self):
 		if self.pushButton_onoff.isChecked() == True:   
 			self.label_onoff.setText('Output      :   OFF') # off
@@ -870,6 +874,7 @@ class dps_GUI(QMainWindow):
 							}
 				except (OSError, serial.SerialException) as detail1:
 					print(datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S"), "Error1 - ", detail1)
+					ser.close()
 					pass
 
 		except Exception as detail:
@@ -926,6 +931,7 @@ class dps_GUI(QMainWindow):
 		if self.mutex.tryLock():
 			self.mutex.unlock()
 		self.timer.stop()
+		dps.serial_data.close()
 		self.connection_status_text = status
 		self.update_connection_button()
 		self.pushButton_CSV_view.setEnabled(True)						# enable CSV viewing capability
