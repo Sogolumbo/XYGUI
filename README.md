@@ -27,7 +27,7 @@ Devices that are similar are easy to adapt to if the use the same modbus registe
 - XY-SK6015L
 - DPS5005
 
-To add support for your device, create a new `device_<model>.ini` file for your device and select it in `config.ini`
+To add support for your device, create a new `device_<model>.ini` file for your device and select it in `source_files/config.ini`
 
 
 
