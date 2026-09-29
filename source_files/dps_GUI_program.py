@@ -133,7 +133,7 @@ class Worker(QRunnable):
 
 class dps_GUI(QMainWindow):
 	def __init__(self):
-		self.limits = Import_limits(app_path("dps5005_limits.ini"))
+		self.limits = Import_limits(app_path("config.ini"))
 			
 		pg.setConfigOption('background', self.limits.background_colour)
 			

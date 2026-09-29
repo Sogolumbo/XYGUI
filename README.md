@@ -1,6 +1,6 @@
-# XY6015L_pyGUI
+# XYGUI
 
-Cross-platform PyQt5 desktop application for monitoring and controlling an `XY6015L` power supply over Modbus RTU.
+Cross-platform PyQt5 desktop application for monitoring and controlling power supplies like the `XY-SK120` over Modbus RTU.
 
 ## What it does
 
@@ -14,6 +14,22 @@ Cross-platform PyQt5 desktop application for monitoring and controlling an `XY60
 - Can lock front-panel buttons on supported hardware
 
 <img src="images/current_ui.jpg">
+
+## Supported devices
+You need to set the config file `device_<model>.ini` for your device in `config.ini`.
+
+Devices that have been tested and work:
+
+- XY-SK120 Buck-Boost
+
+Devices that are similar are easy to adapt to if the use the same modbus registers. Some have worked in a previous version of this program:
+
+- XY-SK6015L
+- DPS5005
+
+To add support for your device, create a new `device_<model>.ini` file for your device and select it in `config.ini`
+
+
 
 ## Project status
 
@@ -78,7 +94,7 @@ Inside the app:
 
 The app can also use a fixed port from:
 
-- `source_files/dps5005_limits.ini`
+- `source_files/config.ini`
 
 If no fixed port is set, it scans available serial ports and tries to detect the device automatically.
 
@@ -110,7 +126,8 @@ Example files are included:
 
 Main runtime configuration lives in:
 
-- `source_files/dps5005_limits.ini`
+- `source_files/config.ini`
+- `source_files/device_<model>.ini`
 
 This file controls:
 
@@ -137,7 +154,7 @@ The repository contains:
 - `XYGUI.spec`
 - `build_app.sh`
 
-This is the current PyInstaller spec file. It bundles the `.ui` files, icons, and `dps5005_limits.ini`.
+This is the current PyInstaller spec file. It bundles the `.ui` files, icons, and `.ini` files.
 
 To build on Linux:
 
@@ -149,7 +166,7 @@ To build on Linux:
 
 You are responsible for safe PSU, battery, and wiring limits.
 
-The application applies configured bounds from `dps5005_limits.ini`, but those bounds still need to match your actual hardware and charging scenario.
+The application applies configured bounds from `device_<model>.ini`, but those bounds still need to match your actual hardware and charging scenario.
 
 ---
 
@@ -233,7 +250,7 @@ python3 source_files/dps_GUI_program.py
 
 Також можна зафіксувати порт у:
 
-- `source_files/dps5005_limits.ini`
+- `source_files/config.ini`
 
 Якщо фіксований порт не заданий, програма сканує доступні serial-порти і пробує знайти пристрій автоматично.
 
@@ -265,7 +282,8 @@ python3 source_files/dps_GUI_program.py
 
 Основний runtime-конфіг лежить тут:
 
-- `source_files/dps5005_limits.ini`
+- `source_files/config.ini`
+- `source_files/device_<model>.ini`
 
 У цьому файлі задаються:
 
@@ -292,7 +310,7 @@ python3 source_files/dps_GUI_program.py
 - `XYGUI.spec`
 - `build_app.sh`
 
-Цей `spec`-файл використовується для збірки через PyInstaller і включає `.ui` файли, іконки та `dps5005_limits.ini`.
+Цей `spec`-файл використовується для збірки через PyInstaller і включає `.ui` файли, іконки та `.ini`.
 
 Для збірки в Linux:
 
@@ -304,4 +322,4 @@ python3 source_files/dps_GUI_program.py
 
 Ви самі відповідаєте за безпечні значення для блоку живлення, акумуляторів і підключення.
 
-Програма використовує обмеження з `dps5005_limits.ini`, але вони все одно мають відповідати вашому реальному обладнанню і сценарію використання.
+Програма використовує обмеження з `device<model>.ini`, але вони все одно мають відповідати вашому реальному обладнанню і сценарію використання.

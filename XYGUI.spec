@@ -14,7 +14,9 @@ a = Analysis(
     datas=[
         (str(SOURCE_DIR / 'dps_GUI.ui'), '.'),
         (str(SOURCE_DIR / 'connection_dialog.ui'), '.'),
-        (str(SOURCE_DIR / 'dps5005_limits.ini'), '.'),
+        (str(SOURCE_DIR / 'config.ini'), '.'),
+        (str(SOURCE_DIR / 'device_dps5005.ini'), '.'),
+        (str(SOURCE_DIR / 'device_xy-sk120.ini'), '.'),
         (str(SOURCE_DIR / 'icon'), 'icon'),
     ],
     hiddenimports=[],

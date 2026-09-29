@@ -14,6 +14,10 @@ these limits prevent the program from issuing silly values.
 '''
 class Import_limits:
 	def __init__(self, filename):
+		self._read_file(filename)
+		self._read_file(self.device_config)
+		
+	def _read_file(self, filename):
 		Config = ConfigParser.ConfigParser()
 		found_files = Config.read(filename)
 		if len(found_files) == 0:
@@ -21,9 +25,9 @@ class Import_limits:
 			quit()
 		sections = [
 			"SectionOne", 	# safety limits
-		 	"SectionTwo", 	# decimal places
-		 	"SectionThree", # plot colours	
-		 ]
+			"SectionTwo", 	# decimal places
+			"SectionThree", # plot colours	
+		]
 		for section in sections:
 			options = Config.options(section)		
 			for i in range(len(options)):
@@ -267,7 +271,8 @@ class Dps5005:
 This file can operate independently controlling the DPS via the commandline however the GUI is much simpler.
 '''
 if __name__ == '__main__':
-	limits = Import_limits("dps5005_limits.ini")
+	limits = Import_limits("config.ini")
+
 	try:
 		print("Serial port: "+limits.port_set)
 		ser = Serial_modbus(limits.port_set, 1, 115200, 8)
