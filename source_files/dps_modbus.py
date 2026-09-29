@@ -1,4 +1,4 @@
-import minimalmodbus
+import minimalmodbus, serial
 import time
 import csv
 
@@ -15,12 +15,14 @@ these limits prevent the program from issuing silly values.
 class Import_limits:
 	def __init__(self, filename):
 		Config = ConfigParser.ConfigParser()
-		Config.read(filename)
+		found_files = Config.read(filename)
+		if len(found_files) == 0:
+			print(f"Config file '{filename}' not found. Potential fix: start the program directly from the containing folder.")
+			quit()
 		sections = [
 			"SectionOne", 	# safety limits
 		 	"SectionTwo", 	# decimal places
 		 	"SectionThree", # plot colours	
-		 	"Communication" # device specific communication specs
 		 ]
 		for section in sections:
 			options = Config.options(section)		
@@ -35,29 +37,32 @@ class Import_limits:
 # Requires minimalmodbus library from: https://github.com/pyhys/minimalmodbus
 '''		
 class Serial_modbus:
-	def __init__(self, port1, addr, baud_rate, byte_size, silent_interval = 0):
-		self.instrument = minimalmodbus.Instrument(port1, addr) # port name, slave address (in decimal)
-		#self.instrument.serial.port          # this is the serial port name
-		self.instrument.serial.baudrate = baud_rate   # Baud rate 9600 as listed in doc
-		self.instrument.serial.bytesize = byte_size
-		self.instrument.serial.timeout = 0.5     # This had to be increased from the default setting else it did not work !
-		self.instrument.mode = minimalmodbus.MODE_RTU  #RTU mode
-		self.silent_interval = silent_interval;
+	def __init__(self, port, addr, baud_rate, byte_size, timeout = 0.5):
+		self.instrument = minimalmodbus.Instrument(
+			serial.Serial(port, baud_rate, byte_size, serial.PARITY_NONE, 1,  timeout),
+			addr,
+			minimalmodbus.MODE_RTU
+		)
+
+		time.sleep(0.016) # ensure silent interval before any message is sent
+		# see https://minimalmodbus.readthedocs.io/en/stable/serialcommunication.html?highlight=silent
+		# temporary solution until https://github.com/pyhys/minimalmodbus/issues/141 is resolved
+		# even with the proposed solution, this delay increases the success rate of the first message from 82% to 98% for the XY-SK120
+
+	def close(self):
+		self.instrument.serial.close()
+		pass
 
 	def read(self, reg_addr, decimal_places):
-		time.sleep(self.silent_interval)
 		return self.instrument.read_register(reg_addr, decimal_places)
 		
 	def read_block(self, reg_addr, size_of_block):
-		time.sleep(self.silent_interval)
 		return self.instrument.read_registers(reg_addr, size_of_block)
 
 	def write(self, reg_addr, value, decimal_places):
-		time.sleep(self.silent_interval)
 		self.instrument.write_register(reg_addr, value, decimal_places) # register, value, No_of_decimal_places
 	
 	def write_block(self, reg_addr, value):
-		time.sleep(self.silent_interval)
 		self.instrument.write_registers(reg_addr, value)
 				
 class Dps5005:
@@ -103,7 +108,11 @@ class Dps5005:
 		return self.function(22, 0)
 
 	def version(self):	# R
-		return self.function(23, self.limits.decimals_version)
+		version = str(self.function(23, 0))
+		for i in range(self.limits.decimals_version):
+			n = i*2+1
+			version = version[:-n] + '.' + version[-n:]	# version
+		return version
 
 	# def extract_m(self, RWaction='r', value=0.0):	# R/W
 		# return self.function(0x23, 0, RWaction, value, self.limits.extract_m_set_max, self.limits.extract_m_set_min) # reg_addr, decimal_places, RWaction, value, max_value, min_value
@@ -137,15 +146,16 @@ class Dps5005:
 	def read_all(self, RWaction='r', value=0.0):	# Read data as a block, much faster than individual reads
 		data = self.functions(0x00, 30, RWaction, value) # reg_addr, number of bytes, RWaction, value
 		#--- adjust values to floating points
-		data[0] = data[0] / float(10**self.limits.decimals_vset)	#100.0	# voltage_set
-		data[1] = data[1] / float(10**self.limits.decimals_iset)	#1000.0	# current_set
-		data[2] = data[2] / float(10**self.limits.decimals_v)	#100.0	# voltage
-		data[3] = data[3] / float(10**self.limits.decimals_i)	#1000.0	# current
-		data[4] = data[4] / float(10**self.limits.decimals_power)	#100.0	# power
-		data[5] = data[5] / float(10**self.limits.decimals_vin)	#100.0	# voltage_in
-		data[23] = data[23] / float(10**self.limits.decimals_version)	#10.0	# version
-		data[13] = data[13] / float(10)	#10.0	# temperature internal
-		data[8] = data[8] / float(1000)	#1000.0	# energy
+		data[0] = data[0] / float(10**self.limits.decimals_vset)	# voltage_set
+		data[1] = data[1] / float(10**self.limits.decimals_iset)	# current_set
+		data[2] = data[2] / float(10**self.limits.decimals_v)		# voltage
+		data[3] = data[3] / float(10**self.limits.decimals_i)		# current
+		data[4] = data[4] / float(10**self.limits.decimals_power)	# power
+		data[5] = data[5] / float(10**self.limits.decimals_vin)	 	# voltage_in
+		data[13] = data[13] / float(10**self.limits.decimals_temp_internal)	# temperature internal
+		data[8] = data[8] / float(10**self.limits.decimals_energy)	# energy
+
+		data[23] = data[23] / float(10**self.limits.decimals_version)	#10.0	# version  # TODO this should not be a float there can be multiple points
 		return data
 	
 	def write_voltage_current(self, RWaction='r', value=0):	# write voltage & current as a block
@@ -207,15 +217,16 @@ class Dps5005:
 				break
 			time.sleep(0.01)
 
-	def check_model(self):
+	def check_model(self, verbose = True):
 		model = self.model()
 		model_hex = hex(model)[2:]
 		expected_model_strings = [str(number) for number in self.limits.model_numbers]
 		match = model_hex in expected_model_strings
-		if match:
-			print(f"Model number {model_hex} matches with config file for Model {self.limits.model_name}.")
-		else:
-			print(f"Model number {model_hex} is not in the list of expected numbers {self.limits.model_numbers} for the configured model {self.limits.model_name}. Please verify that your configuration is correct.")
+		if verbose:
+			if match:
+				print(f"Model number {model_hex} matches with config file for Model {self.limits.model_name}.")
+			else:
+				print(f"Model number {model_hex} is not in the list of expected numbers {self.limits.model_numbers} for the configured model {self.limits.model_name}. Please verify that your configuration is correct.")
 		return match
 
 	
@@ -256,7 +267,7 @@ if __name__ == '__main__':
 	limits = Import_limits("dps5005_limits.ini")
 	try:
 		print("Serial port: "+limits.port_set)
-		ser = Serial_modbus(limits.port_set, 1, 115200, 8, limits.silent_interval)
+		ser = Serial_modbus(limits.port_set, 1, 115200, 8)
 	except Exception as e:
 		print(f"Could not open the serial port '{limits.port_set}'.")
 		print(e.args)
@@ -275,12 +286,13 @@ if __name__ == '__main__':
 				value = [23.47, 1.23]
 				dps.write_voltage_current('w', value)
 			elif route == "r":
-				start = time.time()
+				print("The amount of decimal places shown here may not be correct")
+				#start = time.time()
 				print("voltage_set :  %6.2f" % dps.voltage_set())
-				print(time.time() - start)
+				#print(time.time() - start)
 				print("current_set :  %6.3f" % dps.current_set())	
 				print("voltage     :  %6.2f" % dps.voltage())
-				print("current     :  %6.2f" % dps.current())
+				print("current     :  %6.3f" % dps.current())
 				print("power       :  %6.2f" % dps.power())
 				print("voltage_in  :  %6.2f" % dps.voltage_in())
 		

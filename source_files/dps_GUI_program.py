@@ -658,16 +658,16 @@ class dps_GUI(QMainWindow):
 			self.label_operating_mode.setText('PSU')
 		elif value == 1:
 			self.label_operating_mode.setText('NiMH')
-			if float(self.vout) > float(self.v_peak):   # find peak voltage
-				self.v_peak = float(self.vout)
+			if float(self.vout_str) > float(self.v_peak):   # find peak voltage
+				self.v_peak = float(self.vout_str)
 			if self.pushButton_onoff.isChecked() and (time.time() - self.pushButton_on_start_time > 5): # adds 5sec delay, to prevent immediate switch OFF
-				if float(self.vout) <= (self.v_peak - float(self.v_terminate)):     # switch off output
+				if float(self.vout_str) <= (self.v_peak - float(self.v_terminate)):     # switch off output
 					self.pushButton_onoff.setChecked(False)
 					self.pushButton_onoff_clicked()
 		elif value == 2:
 			self.label_operating_mode.setText('Li-Ion')
 			if self.pushButton_onoff.isChecked() and (time.time() - self.pushButton_on_start_time > 5): # adds 5sec delay, to prevent immediate switch OFF  
-				if float(self.iout) <= float(self.i_terminate):         # switch off output
+				if float(self.iout_str) <= float(self.i_terminate):         # switch off output
 					self.pushButton_onoff.setChecked(False)
 					self.pushButton_onoff_clicked()
 		elif value == 3:
@@ -693,26 +693,28 @@ class dps_GUI(QMainWindow):
 	def read_all(self):
 		data = self.pass_2_dps('read_all')
 		if data != False:       
-			self.vout = ("%5.2f" % data[2]) # vout
-			self.iout = ("%5.2f" % data[3]) # iout
+			self.vout_str = f"{data[2]:5.{self.limits.decimals_v}f}"
+			self.iout_str = f"{data[3]:5.{self.limits.decimals_i}f}"
+			self.vset_str = f"{data[0]:5.{self.limits.decimals_vset}f}"
+			self.iset_str = f"{data[1]:5.{self.limits.decimals_iset}f}"
 			
-			self.accrued_capacity(self.iout)
+			self.accrued_capacity(self.iout_str)
 			
 			self.time_interval = time.time() - self.time_old			
 			self.graph_X.append(self.time_interval)		# Xaxis  - time interval
-			self.graph_Y1.append(self.vout)				# Y1axis - voltage
-			self.graph_Y2.append(self.iout)				# Y2axis - current
+			self.graph_Y1.append(self.vout_str)				# Y1axis - voltage
+			self.graph_Y2.append(self.iout_str)				# Y2axis - current
 			
 			self.update_graph_plot()
 			
-			self.lcdNumber_vset.display("%5.2f" % data[0])  # vset
-			self.lcdNumber_iset.display("%5.2f" % data[1])  # iset
-			self.lcdNumber_vout.display(self.vout)  # vout
-			self.lcdNumber_iout.display(self.iout)  # iout
-			self.lcdNumber_temp_internal.display("%3.1f" % data[13])  # temperature internal
+			self.lcdNumber_vset.display(self.vset_str)  # vset
+			self.lcdNumber_iset.display(self.iset_str)  # iset
+			self.lcdNumber_vout.display(self.vout_str)  # vout
+			self.lcdNumber_iout.display(self.iout_str)  # iout
+			self.lcdNumber_temp_internal.display(f"{data[13]:3.{self.limits.decimals_temp_internal}f}")  # temperature internal
 			
-			self.lcdNumber_pout.display("%5.2f" % data[4])  # power
-			self.lcdNumber_vin.display("%5.2f" % data[5])       # vin
+			self.lcdNumber_pout.display(f"{data[4]:5.{self.limits.decimals_power}f}")  # power
+			self.lcdNumber_vin.display(f"{data[5]:5.{self.limits.decimals_vin}f}" )       # vin
 		# lock
 			value = data[15]
 			if value == 1:
@@ -745,10 +747,10 @@ class dps_GUI(QMainWindow):
 				self.label_led_prot.setPixmap(self.pix_on)
 				
 		# temp
-			self.label_temp.setText('Temperature:  %3.1f*C' % data[13])
+			self.label_temp.setText(f'Temperature:  {data[13]:3.{self.limits.decimals_temp_internal}f}')
 			
 		# energy
-			self.label_energy.setText('Energy      :    %5.3fWh' % data[8])
+			self.label_energy.setText(f'Energy      :    {data[8]:5.{self.limits.decimals_energy}f}Wh')
 			
 		# time
 			self.label_time.setText('Time         :   %3d:%02d:%02d' % (data[10], data[11], data[12]))
@@ -841,7 +843,7 @@ class dps_GUI(QMainWindow):
 				if not fixed_port:
 					print("Trying port: " + port)
 				try:
-					ser = Serial_modbus(port, slave_addr, baudrate, 8, self.limits.silent_interval)
+					ser = Serial_modbus(port, slave_addr, baudrate, 8)
 					candidate_dps = Dps5005(ser, self.limits) #example '/dev/ttyUSB0', 1, 9600, 8)
 					for i in range(2): #try again
 						if i>0:
