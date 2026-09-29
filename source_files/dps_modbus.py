@@ -29,10 +29,11 @@ class Import_limits:
 			"SectionThree", # plot colours	
 		]
 		for section in sections:
-			options = Config.options(section)		
-			for i in range(len(options)):
-				key = options[i]
-				exec("self.%s = %s" % (key, Config.get(section, key)))		
+			if section in Config.sections():
+				options = Config.options(section)		
+				for i in range(len(options)):
+					key = options[i]
+					exec("self.%s = %s" % (key, Config.get(section, key)))		
 
 '''
 # original inspiration for this came from here:
