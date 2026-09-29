@@ -220,7 +220,7 @@ class dps_GUI(QMainWindow):
 		self.timer2.timeout.connect(self.action_CSV)
 		
 		self.timer = QTimer()
-		self.timer.setInterval(1000)
+		self.timer.setInterval(self.limits.update_interval)
 		self.timer.timeout.connect(self.loop_function)
 		
 	#--- V I knobs 
