@@ -761,13 +761,13 @@ class dps_GUI(QMainWindow):
 				self.label_led_prot.setPixmap(self.pix_on)
 				
 		# temp
-			self.label_temp.setText(f'Temperature:  {data[13]:3.{self.limits.decimals_temp_internal}f}')
+			self.label_temp.setText(f'Temperature:  {data[13]:3.{self.limits.decimals_temp_internal}f} {data[19]}')
 			
 		# energy
-			self.label_energy.setText(f'Energy      :    {data[8]:5.{self.limits.decimals_energy}f}Wh')
+			self.label_energy.setText(f'Energy     :    {data[8]:5.{self.limits.decimals_energy}f}Wh')
 			
 		# time
-			self.label_time.setText('Time         :   %3d:%02d:%02d' % (data[10], data[11], data[12]))
+			self.label_time.setText('Time        :   %3d:%02d:%02d' % (data[10], data[11], data[12]))
 
 		# cv/cc 
 			if data[17] == 1:

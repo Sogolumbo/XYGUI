@@ -160,6 +160,8 @@ class Dps5005:
 		data[13] = data[13] / float(10**self.limits.decimals_temp_internal)	# temperature internal
 		data[8] = data[8] / float(10**self.limits.decimals_energy)	# energy
 
+		data[19] = "°F" if data[19] else "°C"
+
 		data[23] = str(data[23])
 		for i in range(self.limits.decimals_version):
 			n = i*2+1
