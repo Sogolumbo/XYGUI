@@ -171,8 +171,8 @@ class dps_GUI(QMainWindow):
 		self.graph_Y1_set = np.empty(shape=[0])
 		self.graph_Y2_set = np.empty(shape=[0])
 		self.time_old = ""
-		self.capacity_time_old = ""
-		self.capacity = 0.0
+		self.charge_time_old = ""
+		self.charge = 0.0
 		
 	#--- connect signals + keyboard shortcuts + status tips
 		self.pushButton_save_plot.clicked.connect(self.pushButton_save_plot_clicked)
@@ -451,8 +451,8 @@ class dps_GUI(QMainWindow):
 		self.time_old = time.time()
 		self.p1.clear()
 		self.p2.clear()
-		self.capacity_time_old = time.time()
-		self.capacity = 0.0
+		self.charge_time_old = time.time()
+		self.charge = 0.0
 		
 	def dial_volt_value_changed(self, val):
 		self.lineEdit_vset.setText(str(val / 10 ** self.limits.decimals_vset))
@@ -687,19 +687,18 @@ class dps_GUI(QMainWindow):
 		else:
 			self.label_operating_mode.setText('Invalid')
 
-	def accrued_capacity(self, current):
-		if self.capacity_time_old != '':
-			self.capacity_time_current = time.time()
-			self.capacity_time_interval = self.capacity_time_current - self.capacity_time_old
-			self.capacity_time_old = self.capacity_time_current
+	def accrued_charge(self, current):
+		if self.charge_time_old != '':
+			self.charge_time_current = time.time()
+			self.charge_time_interval = self.charge_time_current - self.charge_time_old
+			self.charge_time_old = self.charge_time_current
 			try:
-				self.capacity = self.capacity + ((self.capacity_time_interval / 3600.0) * float(current))
+				self.charge = self.charge + ((self.charge_time_interval / 3600.0) * float(current))
 			except ZeroDivisionError:
-				self.capacity =  0.0
-		#	print self.capacity
-			self.label_capacity.setText("Capacity   : %8.3fAh" % self.capacity)
+				self.charge =  0.0
+			self.label_charge.setText(f"Charge     : {self.charge:8.{self.limits.decimals_charge}f} Ah")
 		else:
-			self.capacity_time_old = time.time()
+			self.charge_time_old = time.time()
 			
 #--- read & display values from DPS 
 	def read_all(self):
@@ -710,7 +709,7 @@ class dps_GUI(QMainWindow):
 			self.vset_str = f"{data[0]:5.{self.limits.decimals_vset}f}"
 			self.iset_str = f"{data[1]:5.{self.limits.decimals_iset}f}"
 			
-			self.accrued_capacity(self.iout_str)
+			self.accrued_charge(self.iout_str)
 			
 			self.time_interval = time.time() - self.time_old			
 			self.graph_X.append(self.time_interval)		# Xaxis  - time interval

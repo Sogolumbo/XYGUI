@@ -681,7 +681,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_capacity">
+       <widget class="QLabel" name="label_charge">
         <property name="minimumSize">
          <size>
           <width>170</width>
@@ -689,7 +689,7 @@
          </size>
         </property>
         <property name="text">
-         <string>Capacity</string>
+         <string>Charge</string>
         </property>
        </widget>
       </item>
