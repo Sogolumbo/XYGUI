@@ -699,6 +699,36 @@ class dps_GUI(QMainWindow):
 			self.label_charge.setText(f"Charge     : {self.charge:8.{self.limits.decimals_charge}f} Ah")
 		else:
 			self.charge_time_old = time.time()
+
+	def resistance(self, voltage, current):
+		resistance_str = '       - '
+		resistance = float('NaN')
+		significant_digits = float('NaN')
+		if voltage > 0:
+			resistance_str = '     N.C.' 
+			resistance = float('INF')
+		if current != 0:
+			if voltage == 0:
+				upper_bound = 10**-self.limits.decimals_v/current
+				resistance_str = f"      <{upper_bound:2.1g} Ω"
+			else:
+				resistance = voltage/current - self.limits.resistance_calibration_offset
+				volt_significant_digits = 0
+				if voltage > 0:
+					volt_significant_digits = np.clip(np.log10(voltage)+self.limits.decimals_v+1, min=1)
+				current_significant_digits = np.clip(np.log10(current)+self.limits.decimals_i+1, min=1)
+				significant_digits = min(volt_significant_digits, current_significant_digits)
+
+				unit = "Ω"
+				if resistance >= 1e3:
+					resistance /= 1e3
+					unit = "k"+unit
+				
+				significant_position = -np.log10(resistance)-1+significant_digits
+				decimal_digits = int(np.round(np.clip(significant_position, min=0)))
+				resistance = np.round(resistance, int(np.round(significant_position)))
+				resistance_str = f"{resistance:8.{decimal_digits}f} {unit}" 
+		return resistance_str, resistance, significant_digits
 			
 #--- read & display values from DPS 
 	def read_all(self):
@@ -767,7 +797,10 @@ class dps_GUI(QMainWindow):
 			self.label_energy.setText(f'Energy     :    {data[8]:5.{self.limits.decimals_energy}f}Wh')
 			
 		# time
-			self.label_time.setText('Time        :   %3d:%02d:%02d' % (data[10], data[11], data[12]))
+			self.label_time.setText('Time        : %3d:%02d:%02d' % (data[10], data[11], data[12]))
+
+		# resistance
+			self.label_resistance.setText(f'Resistance: {self.resistance(data[2], data[3])[0]}')
 
 		# cv/cc 
 			if data[17] == 1:
