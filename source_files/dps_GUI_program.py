@@ -659,7 +659,8 @@ class dps_GUI(QMainWindow):
 				self.serial_connect(self.connection_settings)
 			self.read_all()
 			self.operating_mode()
-		except:
+		except Exception as e:
+			print(datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S"), "Error during data retrieval - ", e)
 			self.serial_disconnect("Disconnected")
 		
 #--- operating mode 
