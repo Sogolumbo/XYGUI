@@ -12,6 +12,7 @@ Cross-platform PyQt5 desktop application for monitoring and controlling power su
 - Loads and runs CSV-based automation steps
 - Supports basic PSU mode, NiMH/NiCad mode, and Li-Ion/LiPo mode
 - Can lock front-panel buttons on supported hardware
+- Calculates the resistance based on the voltage and current
 
 <img src="images/current_ui.jpg">
 
