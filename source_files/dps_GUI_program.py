@@ -737,9 +737,29 @@ class dps_GUI(QMainWindow):
 		if data != False:       
 			self.vout_str = f"{data[2]:5.{self.limits.decimals_v}f}"
 			self.iout_str = f"{data[3]:5.{self.limits.decimals_i}f}"
-			self.vset_str = f"{data[0]:5.{self.limits.decimals_vset}f}"
-			self.iset_str = f"{data[1]:5.{self.limits.decimals_iset}f}"
 			
+			new_vset_str = f"{data[0]:5.{self.limits.decimals_vset}f}"
+			new_iset_str = f"{data[1]:5.{self.limits.decimals_iset}f}"
+			
+			vset_changed = True
+			iset_changed = True
+			try:
+				vset_changed = (new_vset_str != self.vset_str)
+				iset_changed = (new_iset_str != self.iset_str)
+			except Exception as e:
+				#print(e)
+				pass
+			self.vset_str = new_vset_str
+			self.iset_str = new_iset_str
+
+			if(self.limits.update_ui_setpoints_from_hardware):
+				if (vset_changed):
+					self.lineEdit_vset.setText(self.vset_str)
+					self.dial_volt.setValue(int(data[0]*10**self.limits.decimals_vset))
+				if (iset_changed):
+					self.lineEdit_iset.setText(self.iset_str)
+					self.dial_curr.setValue(int(data[1]*10**self.limits.decimals_iset))
+
 			self.accrued_charge(self.iout_str)
 			
 			self.time_interval = time.time() - self.time_old			

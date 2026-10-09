@@ -941,6 +941,9 @@
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
                 </property>
+                <property name="text">
+                  <string>0</string>
+                 </property>
                </widget>
               </item>
               <item>
@@ -969,6 +972,9 @@
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
                 </property>
+                <property name="text">
+                  <string>0</string>
+                 </property>
                </widget>
               </item>
               <item>
